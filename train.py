@@ -2,10 +2,11 @@ import pandas as pd
 import torch
 from torch import nn, optim
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 
 #data prepration
-
-data_df= pd.read_csv(r"ik_data\ik_data.csv",index_col=False)
+writer = SummaryWriter(r'D:\python\PYTORCH\Ik_prediction_model\log\v4.1ik')
+data_df= pd.read_csv(r"D:\python\PYTORCH\Ik_prediction_model\ik_data\ik_data.csv",index_col=False)
 location_lable = data_df.iloc[:,1:3]
 angle_input = data_df.iloc[:,3:]
 
@@ -27,6 +28,20 @@ IkPrdt = nn.Sequential(nn.Linear(2,20),
                        nn.ReLU(),
                        nn.Linear(20,80),
                        nn.ReLU(),
+                       nn.Linear(80,200),
+                       nn.ReLU(),
+                       nn.Linear(200,400),
+                       nn.ReLU(),
+                       nn.Linear(400,400),
+                       nn.ReLU(),
+                       nn.Linear(400,800),
+                       nn.ReLU(),
+                       nn.Linear(800,400),
+                       nn.ReLU(),
+                       nn.Linear(400,200),
+                       nn.ReLU(),
+                       nn.Linear(200,80),
+                       nn.ReLU(),
                        nn.Linear(80,60),
                        nn.ReLU(),
                        nn.Linear(60,30),
@@ -34,7 +49,7 @@ IkPrdt = nn.Sequential(nn.Linear(2,20),
                        nn.Linear(30,3)
                       )
 
-criterion = nn.HuberLoss()
+criterion = nn.L1Loss()
 optimizer = optim.SGD(IkPrdt.parameters(), lr=0.01)
 #uncommand if you want to use the trained model
 #IkPrdt = torch.load(r"C:\Users\Nilesh\Desktop\blender_models\weights\ikprdt_360deg_v3.pth")
@@ -43,8 +58,10 @@ IkPrdt.to(device)
 
 #training loop
 count = 0
+i = 0
 try:
     while True:
+        print("running")
         running_loss = 0
         for inputs_tensor, labels_tensor in train_loader:
             optimizer.zero_grad()
@@ -58,18 +75,16 @@ try:
 
             running_loss += loss.item()
 
-            print (running_loss)
-        if running_loss < 1.5:
-            count +=1
-            if count == 30:
-                break
-
-except KeyboardInterrupt: # too stop the training with ctrl + c
+            writer.add_scalar('training loss',
+                            running_loss,
+                            i)
+            i += 1
+except KeyboardInterrupt:
     pass
 
 
-#save the model
-path = r'weights\ikprdtv2.pth'
+
+path = r'D:\python\PYTORCH\Ik_prediction_model\weights\ikprdtv4.pth'
 
 torch.save(IkPrdt, path)
 
